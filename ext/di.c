@@ -132,10 +132,13 @@ PHP_METHOD(Phalcon_DI, set){
 		ZVAL_FALSE(shared);
 	}
 
-	object_init_ex(return_value, phalcon_di_service_ce);
-	phalcon_call_method_p3_noret(return_value, "__construct", name, definition, shared);
-	
-	phalcon_update_property_array(this_ptr, SL("_services"), name, return_value TSRMLS_CC);
+        if (Z_TYPE_P(definition) != IS_BOOL) {        
+            object_init_ex(return_value, phalcon_di_service_ce);
+            phalcon_call_method_p3_noret(return_value, "__construct", name, definition, shared);
+            phalcon_update_property_array(this_ptr, SL("_services"), name, return_value TSRMLS_CC);
+        } else {
+            phalcon_update_property_array(this_ptr, SL("_services"), name, definition TSRMLS_CC);
+        }
 	
 	PHALCON_MM_RESTORE();
 }
@@ -350,10 +353,12 @@ PHP_METHOD(Phalcon_DI, get){
 
 	services = phalcon_fetch_nproperty_this(this_ptr, SL("_services"), PH_NOISY_CC);
 	if (phalcon_array_isset_fetch(&service, services, name)) {
-		/** 
-		 * The service is registered in the DI
-		 */
-		phalcon_call_method_p2(instance, service, "resolve", parameters, this_ptr);
+                if (Z_TYPE_P(service) != IS_BOOL) {      
+                    /** 
+                     * The service is registered in the DI
+                     */
+                    phalcon_call_method_p2(instance, service, "resolve", parameters, this_ptr);
+                }
 	} else {
 		/** 
 		 * The DI also acts as builder for any class even if it isn't defined in the DI
