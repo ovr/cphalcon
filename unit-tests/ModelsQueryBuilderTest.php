@@ -44,7 +44,6 @@ class ModelsQueryBuilderTest extends PHPUnit_Framework_TestCase
 
 	protected function _getDI()
 	{
-
 		Phalcon\DI::reset();
 
 		$di = new Phalcon\DI();
@@ -56,10 +55,32 @@ class ModelsQueryBuilderTest extends PHPUnit_Framework_TestCase
 		$di->set('modelsMetadata', function(){
 			return new Phalcon\Mvc\Model\Metadata\Memory();
 		});
-
-		$di->set('db', function(){
+		$di->set('profiler', function(){
+			return new \Phalcon\Db\Profiler();
+		}, true);
+		$di->set('db', function() use ($di) {
 			require 'unit-tests/config.db.php';
-			return new Phalcon\Db\Adapter\Pdo\Mysql($configMysql);
+			$connection = new \Phalcon\Db\Adapter\Pdo\Mysql($configMysql);
+
+			$eventsManager = new \Phalcon\Events\Manager();
+
+			//Get a shared instance of the DbProfiler
+			$profiler = $di->getProfiler();
+
+			//Listen all the database events
+			$eventsManager->attach('db', function($event, $connection) use ($profiler) {
+				if ($event->getType() == 'beforeQuery') {
+					$profiler->startProfile($connection->getSQLStatement());
+				}
+				if ($event->getType() == 'afterQuery') {
+					$profiler->stopProfile();
+				}
+			});
+
+			//Assign the eventsManager to the db adapter instance
+			$connection->setEventsManager($eventsManager);
+
+			return $connection;
 		});
 
 		return $di;
@@ -503,4 +524,37 @@ class ModelsQueryBuilderTest extends PHPUnit_Framework_TestCase
 		$this->assertEquals($expectedPhql, $builderMultipleConditions->getPhql());
 		$this->assertInstanceOf("Phalcon\Mvc\Model\Resultset\Simple", $multipleConditionResult);		
     }
+
+	public function testRelationFetchProblem()
+	{
+		$di = $this->_getDI();
+
+		$builder = new Builder();
+		$phql = $builder->setDi($di)
+			->from('Robots')
+			->leftJoin('RobotsParts', 'Robots.id = RobotsParts.robots_id')
+			->leftJoin('Parts', 'Parts.id = RobotsParts.parts_id');;
+
+		$this->assertEquals($di->get('profiler')->getNumberTotalStatements(), 0);
+
+		$paginator = new \Phalcon\Paginator\Adapter\QueryBuilder(array(
+			'builder' => $builder,
+			'limit' => 1,
+			'page' => 1
+		));
+		$result = $paginator->getPaginate();
+
+		$this->assertEquals($di->get('profiler')->getNumberTotalStatements(), 1);
+
+		foreach($result->items as $item) {
+			$this->assertEquals($di->get('profiler')->getNumberTotalStatements(), 1);
+		}
+
+		foreach($result->items as $item) {
+			$item->RobotsParts->Parts;
+			$this->assertEquals($di->get('profiler')->getNumberTotalStatements(), 1);
+		}
+
+		$this->assertTrue(true);
+	}
 }

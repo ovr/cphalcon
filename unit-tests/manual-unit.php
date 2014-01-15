@@ -188,7 +188,6 @@ catch(Exception $e){
 }
 
 if (function_exists('xhprof_enable')) {
-
 	$xhprof_data = xhprof_disable('/tmp');
 
 	$XHPROF_ROOT = "/var/www/xhprof/";
@@ -199,5 +198,4 @@ if (function_exists('xhprof_enable')) {
 	$run_id = $xhprof_runs->save_run($xhprof_data, "xhprof_testing");
 
 	echo "http://192.168.0.27/xhprof/xhprof_html/index.php?run={$run_id}&source=xhprof_testing\n";
-
 }
