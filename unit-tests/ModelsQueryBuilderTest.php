@@ -519,9 +519,9 @@ class ModelsQueryBuilderTest extends PHPUnit_Framework_TestCase
 
         $builder = new Builder();
         $phql = $builder->setDi($di)
-            ->from('Items')
+            ->from('\dsfsdfsdfsdfdsfdsfsdfsdfsdfsdItems')
             ->getPhql();
 
-        $this->assertTrue(true);
+        $this->set
     }
 }
