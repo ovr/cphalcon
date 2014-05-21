@@ -506,4 +506,22 @@ class ModelsQueryBuilderTest extends PHPUnit_Framework_TestCase
 		$this->assertEquals($expectedPhql, $builderMultipleConditions->getPhql());
 		$this->assertInstanceOf("Phalcon\Mvc\Model\Resultset\Simple", $multipleConditionResult);		
     }
+
+    public function testNotFoundException()
+    {
+        require 'unit-tests/config.db.php';
+        if (empty($configMysql)) {
+            $this->markTestSkipped("Test skipped");
+            return;
+        }
+
+        $di = $this->_getDI();
+
+        $builder = new Builder();
+        $phql = $builder->setDi($di)
+            ->from('Items')
+            ->getPhql();
+
+        $this->assertTrue(true);
+    }
 }
